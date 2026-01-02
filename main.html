@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -101,8 +102,8 @@
         /* Tables Container */
         .tables-container {
             display: grid;
-            gap: 25px;
-            margin-bottom: 30px;
+            gap: 15px; /* CHANGED from 25px to 15px */
+            margin-bottom: 20px; /* CHANGED from 30px to 20px */
         }
         
         /* Category Groups */
@@ -146,13 +147,15 @@
         }
         
         .category-content {
-            padding: 25px;
+            padding: 15px; /* CHANGED from 25px to 15px */
         }
         
+
         /* Parameter Tables inside Category */
         .parameter-tables {
             display: grid;
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* ADDED this line */
+            gap: 12px; /* CHANGED from 20px to 12px */
         }
         
         .parameter-table {
@@ -161,6 +164,7 @@
             border: 1px solid #e2e8f0;
             overflow: hidden;
             transition: all 0.3s ease;
+            height: fit-content; /* ADD this line */
         }
         
         .parameter-table:hover {
@@ -171,7 +175,7 @@
         .param-header {
             background: linear-gradient(90deg, #4c8bf5 0%, #3182ce 100%);
             color: white;
-            padding: 16px 20px;
+            padding: 12px 15px; /* CHANGED from 16px 20px to 12px 15px */
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -200,15 +204,15 @@
         }
         
         .param-content {
-            padding: 20px;
+            padding: 15px; /* CHANGED from 20px to 15px */
         }
         
         /* Input list inside parameter table */
         .inputs-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px; /* CHANGED from 10px to 8px */
+            margin-bottom: 15px; /* CHANGED from 20px to 15px */
             min-height: 40px;
         }
         
@@ -216,7 +220,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 15px;
+            padding: 10px 12px; /* CHANGED from 12px 15px to 10px 12px */
             background: white;
             border-radius: 6px;
             border: 1px solid #e2e8f0;
@@ -229,7 +233,7 @@
         }
         
         .input-name {
-            font-size: 15px;
+            font-size: 14px; /* CHANGED from 15px to 14px */
             color: #2d3748;
             font-weight: 500;
         }
@@ -238,14 +242,14 @@
             background: #fed7d7;
             color: #c53030;
             border: none;
-            width: 26px;
-            height: 26px;
+            width: 22px; /* CHANGED from 26px to 22px */
+            height: 22px; /* CHANGED from 26px to 22px */
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 14px; /* CHANGED from 16px to 14px */
             font-weight: bold;
             transition: all 0.2s ease;
         }
@@ -507,6 +511,14 @@
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
+            .parameter-tables {
+        grid-template-columns: 1fr; /* Single column on mobile */
+    }
+    
+    .category-content {
+        padding: 12px; /* Even smaller padding on mobile */
+    }
+
             .container {
                 padding: 20px;
             }
@@ -751,7 +763,7 @@
                                 ${params.map(param => `
                                     <div class="parameter-table">
                                         <div class="param-header">
-                                            <div class="param-name">${param.name}</div>
+                                            <div class="param-name" title="${param.name}">${param.name.length > 15 ? param.name.substring(0, 15) + '...' : param.name}</div>
                                             <button class="delete-param-btn" onclick="removeParameter(${param.originalIndex})">Delete</button>
                                         </div>
                                         
@@ -765,7 +777,7 @@
                                                 
                                                 ${param.inputs.map((input, inputIndex) => `
                                                     <div class="input-item">
-                                                        <div class="input-name">${input}</div>
+                                                        <div class="input-name" title="${input}">${input.length > 20 ? input.substring(0, 20) + '...' : input}</div>
                                                         <button class="delete-input-btn" onclick="removeInputFromParameter(${param.originalIndex}, ${inputIndex})">×</button>
                                                     </div>
                                                 `).join('')}
