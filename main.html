@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -559,7 +560,35 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #a1a1a1;
         }
+
+        .footer {
+    margin-top: 50px;
+    padding: 30px 20px;
+    text-align: center;
+    border-top: 1px solid #e2e8f0;
+    color: #4a5568;
+    font-size: 14px;
+}
+
+.footer-logos {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.footer-logo {
+    height: 45px;
+    opacity: 0.85;
+}
+
+.developers {
+    margin-top: 10px;
+    line-height: 1.6;
+}
+
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -572,6 +601,12 @@
         <div class="input-row">
             <input type="text" id="paramInput" placeholder="Enter parameter name (e.g., 'Temperature', 'Browser', 'OS')">
             <button class="add-btn" onclick="addParameter()">Add Parameter</button>
+        </div>
+
+        <!-- XML Import / Export -->
+        <div class="input-row">
+            <button class="add-btn" onclick="exportToXML()">Export XML</button>
+            <input type="file" id="xmlFileInput" accept=".xml" onchange="importFromXML(event)">
         </div>
         
         <!-- Tables Container (Grouped by input count) -->
@@ -608,12 +643,39 @@
         
         <!-- Test Cases Output -->
         <div class="test-cases-section" id="testCasesSection">
+            <div id="captureBox">
             <div class="test-cases-title">Generated Test Cases</div>
             <div class="test-cases-count" id="testCasesCount">0 test cases generated</div>
+                        <div class="btn-container" style="margin-bottom:15px;">
+                            <button class="generate-btn" onclick="savePNG()">Save as PNG</button>
+                            <button class="generate-btn" onclick="downloadText()">Save as TXT</button>
+                        </div>
             <div class="test-cases-container" id="testCasesContainer">
                 <!-- Test cases will appear here -->
             </div>
+            </div>
         </div>
+
+        <div class="footer">
+    <div class="footer-logos">
+        <img src="unimap logo.png" class="footer-logo" alt="UniMAP Logo">
+        <img src="advacomp logo.png" class="footer-logo" alt="ADVCOMP Logo">
+        <img src="thursinar.png" class="footer-logo" alt="Thursinar Logo">
+    </div>
+
+    <div class="copyright">
+        <strong>© 2026 Universiti Malaysia Perlis (UniMAP) — Faculty of Intelligent Computing</strong>
+    </div>
+
+    <div class="developers">
+        Developed by:<br>
+        Muhammad Aiman bin Mohd Asyraf,<br>
+        Assoc. Prof. Dr. Rozmie Razif B. Othman,<br>
+        Ts. Dr. Mohd Zamri B. Zahir Ahmad,<br>
+        Ts. Dr. Ahmad Ashraf Abdul Halim,<br>
+        Murad Muhammad Hasan Salih Al-Walidi
+    </div>
+</div>
     </div>
 
     <script>
@@ -621,7 +683,9 @@
         let parameters = []; // existing
         let inputEncoding = {}; 
         // inputEncoding[paramIndex] = { nameToNum: {}, numToName: {} }
-
+        let lastRawResult = "";
+        let lastStrength = 0;
+        let lastValues = [];
         
         // Add new parameter table
         function addParameter() {
@@ -845,14 +909,9 @@
             
             for (const [inputCount, paramCount] of sortedCounts) {
                 if (paramCount > 0) {
-                    if (paramCount === 1) {
-                        formulaParts.push(`${inputCount}`);
-                    } else {
-                        formulaParts.push(`${inputCount}<sup>${paramCount}</sup>`);
-                    }
+                    formulaParts.push(`${inputCount}<sup>${paramCount}</sup>`);
                 }
-            }
-            
+            }        
             // Handle case where all parameters have 0 inputs
             if (formulaParts.length === 0) {
                 formulaText.innerHTML = "2<sup>0</sup>";
@@ -861,7 +920,7 @@
             }
             
             // Create the formula display (only the formula, no equals sign)
-            const formulaString = formulaParts.join(" × ");
+            const formulaString = formulaParts.join("×");
             formulaText.innerHTML = formulaString;
             
             // Create explanation
@@ -928,10 +987,33 @@ if (strength > paramValue) {
 
             const res = await fetch(url);
             const raw = await res.text();
+            lastRawResult = raw;
+            lastStrength = strength;
+            lastValues = values;
 
             const decoded = decodeBackendResult(raw, validParams);
 
             renderDecodedResults(decoded, strength);
+        }
+        
+        function decodeRawResultToNames(raw) {
+            return raw
+                .split("\n")
+                .filter(line => /^\d+\)/.test(line))
+                .map(line => {
+                    const nums = line
+                        .replace(/^\d+\)\s*/, "")
+                        .trim()
+                        .split(/\s+/)
+                        .map(Number);
+
+                    const names = nums.map((n, i) =>
+                        inputEncoding[i]?.numToName[n] ?? n
+                    );
+
+                    return `${line.split(")")[0]}) ${names.join(", ")}`;
+                })
+                .join("\n");
         }
 
         function decodeBackendResult(raw, validParams) {
@@ -975,6 +1057,156 @@ if (strength > paramValue) {
             section.scrollIntoView({ behavior: 'smooth' });
         }
         
+                function exportToXML() {
+            if (parameters.length === 0) {
+                alert("No configuration to export.");
+                return;
+            }
+
+            const strength = document.getElementById('strengthInput')?.value || 2;
+
+            let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+            xml += `<combinatorialTestDesign>\n`;
+            xml += `  <interactionStrength>${strength}</interactionStrength>\n`;
+            xml += `  <parameters>\n`;
+
+            parameters.forEach(p => {
+                if (p.inputs.length === 0) return;
+
+                xml += `    <parameter name="${escapeXML(p.name)}">\n`;
+                p.inputs.forEach(v => {
+                    xml += `      <value>${escapeXML(v)}</value>\n`;
+                });
+                xml += `    </parameter>\n`;
+            });
+
+            xml += `  </parameters>\n`;
+
+                        if (lastRawResult) {
+                const decodedForXML = decodeBackendResult(
+                    lastRawResult,
+                    parameters.filter(p => p.inputs.length > 0)
+                ).join("\n");
+
+                xml += `  <generatedTestSuite><![CDATA[\n${decodedForXML}\n]]></generatedTestSuite>\n`;
+            }
+
+            xml += `</combinatorialTestDesign>`;
+
+            const blob = new Blob([xml], { type: "application/xml" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "tway-test-configuration.xml";
+            a.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        function escapeXML(str) {
+            return str.replace(/[<>&'"]/g, c =>
+                ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', "'":'&apos;', '"':'&quot;' }[c])
+            );
+        }
+
+        function importFromXML(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = () => parseXML(reader.result);
+            reader.readAsText(file);
+        }
+
+        function parseXML(xmlText) {
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(xmlText, "application/xml");
+
+            const strengthNode = xml.querySelector("interactionStrength");
+            if (strengthNode) {
+                document.getElementById("strengthInput").value = strengthNode.textContent;
+            }
+
+            const paramNodes = xml.querySelectorAll("parameter");
+
+            parameters = [];
+            inputEncoding = {};
+
+            paramNodes.forEach((pNode, idx) => {
+                const name = pNode.getAttribute("name");
+                const values = [...pNode.querySelectorAll("value")].map(v => v.textContent);
+
+                parameters.push({ name, inputs: values });
+
+                inputEncoding[idx] = { nameToNum: {}, numToName: {} };
+                values.forEach((val, i) => {
+                    inputEncoding[idx].nameToNum[val] = i + 1;
+                    inputEncoding[idx].numToName[i + 1] = val;
+                });
+            });
+
+            updateTables();
+            updateFormula();
+
+            // ✅ ADD FROM HERE ↓↓↓
+            const resultNode = xml.querySelector("generatedTestSuite");
+
+            if (resultNode) {
+                const text = resultNode.textContent.trim();
+
+                const results = text
+                    .split("\n")
+                    .map(l => l.trim())
+                    .filter(l => l);
+
+                renderDecodedResults(results);
+
+                // restore session state
+                lastRawResult = text;
+                lastStrength = document.getElementById("strengthInput").value;
+                lastValues = parameters.map(p => p.inputs.length);
+            }
+        }
+
+        async function savePNG() {
+            const box = document.getElementById("captureBox");
+            const canvas = await html2canvas(box, {
+                scale: 2,
+                backgroundColor: "#ffffff"
+            });
+            const imgData = canvas.toDataURL("image/png");
+            const link = document.createElement("a");
+            link.href = imgData;
+            link.download = "TestSuite.png";
+            link.click();
+        }
+
+        function downloadText() {
+            if (!lastRawResult) {
+                alert("No test suite generated yet.");
+                return;
+            }
+
+            let cleaned = decodeRawResultToNames(lastRawResult);
+            let count = cleaned.split("\n").length;
+
+            let header =
+        `Test Suite
+        Interaction Strength (t): ${lastStrength}
+        Values: [${lastValues.join(", ")}]`;
+
+            let footer = `Completed with ${count} test cases.`;
+
+            let finalText = header + cleaned + footer;
+
+            let blob = new Blob([finalText], { type: "text/plain" });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "TestSuite.txt";
+            link.click();
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Enter key support for parameter input
